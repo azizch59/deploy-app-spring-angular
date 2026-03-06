@@ -1,3 +1,4 @@
+```yaml
 name: CI/CD
 
 on:
@@ -28,7 +29,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+
       - name: Build and Push Back-End to DockerHub
         uses: docker/build-push-action@v5
         with:
@@ -42,12 +43,16 @@ jobs:
           context: ./angular-app
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-frontend:latest
-      
-      - name: Prepare Local Images for Compose Test
-        run: |
-          docker build -t spring-app ./springboot/app
-          docker build -t angular-app ./angular-app
 
-      - name: Test with Docker Compose
-        run: docker compose up -d
-      
+      - name: Update docker-compose with DockerHub images
+        run: |
+          sed -i "s|spring-boot-app:latest|${{ secrets.DOCKERHUB_USERNAME }}/tp-backend:latest|g" docker-compose.yml
+          sed -i "s|angular-app:latest|${{ secrets.DOCKERHUB_USERNAME }}/tp-frontend:latest|g" docker-compose.yml
+
+      - name: Pull images and run Docker Compose
+        run: |
+          docker compose pull
+          docker compose up -d
+
+      - name: Show running containers
+        run: docker ps
